@@ -1,0 +1,21 @@
+#######################################
+# Syntax Coloring Map
+#######################################
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+YahooWeather	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+setCityName	    KEYWORD2
+setLocationt	KEYWORD2
+setWoeid	    KEYWORD2
+updateWeather	KEYWORD2
+setUnitFormat	KEYWORD2
+getUnit	        KEYWORD2
+forecastsSize	KEYWORD2
+isValid         KEYWORD2
