@@ -2,7 +2,7 @@
 #include <SPIFFS.h>
 #include <WiFi.h>
 #include <time.h>
-#include "yahoo.h"
+#include "YahooWeatherAPI.h"
 
 #define WIFI_SSID               "YOUR_WIFI_SSID"
 #define WIFI_PASSWORD           "YOUR_WIFI_PASSWORD"

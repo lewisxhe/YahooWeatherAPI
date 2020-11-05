@@ -1,26 +1,22 @@
 /*
-yahoo.h
+YahooWeatherAPI.h
 
 Arduino version Yahoo Weather library
 https://github.com/lewisxhe/YahooWeatherAPI
 
+Lewis He (1/28/2020) : Create and submit
+       - (11/05/2020) Added cJSON support
 Written by Lewis He
 */
 
 #pragma once
 
-#include <ArduinoJson.h>
 #include <Arduino.h>
 #include <FS.h>
 #include <SPIFFS.h>
 
 // #define YAHOO_DEBUG
-
-#define YAHOO_JSON_FLIE         "/yahoo.json"
-#define YAHOO_URL               "https://weather-ydn-yql.media.yahoo.com/forecastrss"
-#define YAHOO_METHOD            "GET"
-#define YAHOO_SIGNATURE_METHOD  "HMAC-SHA1"
-#define CONCAT                  "&"
+#define ENABLE_CJSON
 
 #define _YAHOO_USE_CITYNAME     0
 #define _YAHOO_USE_LOCTION      1
@@ -53,6 +49,14 @@ public:
     }
     String city;
     String timeZone;
+    String region;
+    String country;
+    String timezone_id;
+
+    float lat;
+    float lon;
+
+    int woeid;
 
     int chill;          //寒意
     int direction;      //方向
@@ -66,7 +70,7 @@ public:
     String sunrise;     //日出
     String sunset;      //日落
 
-    String text;        //文本  
+    String text;        //文本
     int code;           //天气代码
     int temperature;    //温度
 

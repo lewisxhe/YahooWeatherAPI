@@ -1,19 +1,30 @@
 /*
-yahoo.cpp
+YahooWeatherAPI.cpp
 
 Arduino version Yahoo Weather library
 https://github.com/lewisxhe/YahooWeatherAPI
 
 Lewis He (1/28/2020) : Create and submit
-
+       - (11/05/2020) Added cJSON support
 Written by Lewis He
 */
-
-#include "yahoo.h"
+#include "YahooWeatherAPI.h"
+#include <string.h>
 #include <base64.h>
 #include "mbedtls/md.h"
 #include <HTTPClient.h>
-#include <string.h>
+#ifdef ENABLE_CJSON
+#include "cJSON.h"
+#else
+#include <ArduinoJson.h>
+#endif
+
+
+#define YAHOO_JSON_FLIE         "/yahoo.json"
+#define YAHOO_URL               "https://weather-ydn-yql.media.yahoo.com/forecastrss"
+#define YAHOO_METHOD            "GET"
+#define YAHOO_SIGNATURE_METHOD  "HMAC-SHA1"
+#define CONCAT                  "&"
 
 char *urlEncode(const char *input)
 {
@@ -121,7 +132,7 @@ bool YahooWeather::updateWeather(long time)
             params += CONCAT;
         }
     }
-    
+
     if (!_isImperial) {
         params += CONCAT;
         params += "u=c";
@@ -303,6 +314,8 @@ bool YahooWeather::parseJson()
 #endif
         return false;
     }
+
+#ifndef ENABLE_CJSON
 #if ARDUINOJSON_VERSION_MAJOR == 5
     DynamicJsonBuffer jsonBuffer;
     JsonObject &root = jsonBuffer.parseObject(file);
@@ -340,7 +353,7 @@ bool YahooWeather::parseJson()
         info.valid = false;
         return false;
     }
-    
+
     info.city =  city;
     info.valid = true;
     info.timeZone = (const char *)root["location"]["timezone_id"];
@@ -373,6 +386,100 @@ bool YahooWeather::parseJson()
         info.forecasts[i].text =  (const char *)array[i]["text"];
         info.forecasts[i].code = array[i]["code"];
     }
+#else
+
+    cJSON *root = cJSON_Parse(file.readString().c_str());
+    file.close();
+    if (!root) {
+#ifdef YAHOO_DEBUG
+        Serial.println(F("cJSON_Parse() failed!"));
+#endif
+        info.valid = false;
+        return false;
+    }
+
+    /*location*/
+    cJSON *location = cJSON_GetObjectItem(root, "location");
+    cJSON *city = cJSON_GetObjectItem(location, "city");
+    cJSON *region = cJSON_GetObjectItem(location, "region");
+    cJSON *woeid = cJSON_GetObjectItem(location, "woeid");
+    cJSON *country = cJSON_GetObjectItem(location, "country");
+    cJSON *lat = cJSON_GetObjectItem(location, "lat");
+    cJSON *lon = cJSON_GetObjectItem(location, "long");
+    cJSON *timezone_id = cJSON_GetObjectItem(location, "timezone_id");
+
+    /*current_observation*/
+    cJSON *current = cJSON_GetObjectItem(root, "current_observation");
+    /**wind*/
+    cJSON *wind = cJSON_GetObjectItem(current, "wind");
+    cJSON *chill = cJSON_GetObjectItem(wind, "chill");
+    cJSON *direction = cJSON_GetObjectItem(wind, "direction");
+    cJSON *speed = cJSON_GetObjectItem(wind, "speed");
+    /**atmosphere*/
+    cJSON *atmosphere = cJSON_GetObjectItem(current, "atmosphere");
+    cJSON *humidity = cJSON_GetObjectItem(atmosphere, "humidity");
+    cJSON *visibility = cJSON_GetObjectItem(atmosphere, "visibility");
+    cJSON *pressure = cJSON_GetObjectItem(atmosphere, "pressure");
+    cJSON *rising = cJSON_GetObjectItem(atmosphere, "rising");
+    /**astronomy*/
+    cJSON *astronomy = cJSON_GetObjectItem(current, "astronomy");
+    cJSON *sunrise = cJSON_GetObjectItem(astronomy, "sunrise");
+    cJSON *sunset = cJSON_GetObjectItem(astronomy, "sunset");
+    /**condition*/
+    cJSON *condition = cJSON_GetObjectItem(current, "condition");
+    cJSON *text = cJSON_GetObjectItem(condition, "text");
+    cJSON *code = cJSON_GetObjectItem(condition, "code");
+    cJSON *temperature = cJSON_GetObjectItem(condition, "temperature");
+    /**pubDate*/
+    cJSON *pubDate = cJSON_GetObjectItem(current, "pubDate");
+
+    /*location*/
+    info.timeZone = timezone_id->valuestring;
+    info.region = region->valuestring;
+    info.woeid = woeid->valueint;
+    info.country = country->valuestring;
+    info.lat = lat->valuedouble;
+    info.lon = lon->valuedouble;
+    info.timezone_id = timezone_id->valuestring;
+
+    /**wind*/
+    info.chill = chill->valueint;
+    info.direction = direction->valueint;
+    info.speed = speed->valuedouble;
+
+    /**atmosphere*/
+    info.humidity = humidity->valueint;
+    info.visibility = visibility->valuedouble;
+    info.pressure = pressure->valuedouble;
+    info.rising = rising->valueint;
+
+    /**astronomy*/
+    info.sunrise = sunrise->valuestring;
+    info.sunset = sunset->valuestring;
+
+    /**condition*/
+    info.text = text->valuestring;
+    info.code = code->valueint;
+    info.temperature = temperature->valueint;
+
+    /**pubDate*/
+    info.pubDate = pubDate->valueint;
+
+
+    cJSON *forecasts = cJSON_GetObjectItem(root, "forecasts");
+    int size =   cJSON_GetArraySize(forecasts);
+    for (int i = 0; i < size; ++i) {
+        cJSON *item = cJSON_GetArrayItem(forecasts, i);
+        info.forecasts[i].day =  cJSON_GetObjectItem(item, "day")->valuestring;
+        info.forecasts[i].date = cJSON_GetObjectItem(item, "date")->valueint;
+        info.forecasts[i].low =  cJSON_GetObjectItem(item, "low")->valueint;
+        info.forecasts[i].high =  cJSON_GetObjectItem(item, "high")->valueint;
+        info.forecasts[i].text =   cJSON_GetObjectItem(item, "text")->valuestring;
+        info.forecasts[i].code = cJSON_GetObjectItem(item, "code")->valueint;
+    }
+    cJSON_Delete(root);
+#endif
+    info.valid = true;
     return true;
 }
 
