@@ -7,4 +7,4 @@ YahooWeatherAPI
 4. Upload the **YahooWeahter.ino** to the board and you will see the weather information output by the serial port
 5. For more usage, please see [YahooWeahter.ino](https://github.com/lewisxhe/YahooWeatherAPI/blob/master/examples/YahooWeahter/YahooWeahter.ino)
 6. For more information, see [Yahoo! Developer](https://developer.yahoo.com/weather/)
-
+7. By default, `cJSON` is used for parsing. No other dependencies need to be installed on the `ESP32` platform. If you need to change to `ArduinoJSON`, you need to comment `ENABLE_CJSON` in `YahooWeatherAPI.h`
